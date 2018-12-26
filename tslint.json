@@ -1,0 +1,11 @@
+{
+  "extends": ["tslint:latest", "tslint-eslint-rules", "tslint-config-prettier"],
+  "rules": {
+    "interface-name": false,
+    "eofline": false,
+    "jsx-boolean-value": false,
+    "variable-name": false,
+    "no-implicit-dependencies": false,
+    "no-submodule-imports": false
+  }
+}
