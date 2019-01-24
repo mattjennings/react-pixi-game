@@ -10,7 +10,7 @@ export interface InputProps {
 }
 
 export interface InputPropsWithInjections extends InputProps {
-  app: any
+  app: PIXI.Application
 }
 
 export interface InputState {
@@ -93,7 +93,7 @@ class Input extends React.Component<InputPropsWithInjections, InputState> {
   }
 }
 
-export default withPixiApp(Input) as React.ComponentType<InputProps>
+export default withPixiApp(Input)
 
 // implementation with hooks - causes memory leak / internal state reference issues with useLoop/useTick
 // export default function Input({
