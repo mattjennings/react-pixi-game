@@ -10,8 +10,8 @@ body {
 }
 
 canvas {
-  width: auto;
+  width: 100%;
+  height: auto;
   margin: auto;
   display: block;
-  height: 95%;
 }

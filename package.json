@@ -4,7 +4,7 @@
   "description": "An example game written in pixi & react",
   "main": "src/index.js",
   "scripts": {
-    "dev": "webpack-dev-server",
+    "dev": "webpack-dev-server --port 1234",
     "test": "./node_modules/.bin/jest --watch --coverage"
   },
   "devDependencies": {

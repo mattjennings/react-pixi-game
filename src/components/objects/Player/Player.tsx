@@ -1,10 +1,9 @@
 import keycodes from 'keycodes'
-import React, { useRef, useState } from 'react'
+import React, { useState } from 'react'
 import Input from '~components/io/Input'
+import useCollision from '~hooks/useCollision'
 import usePosition from '~hooks/usePosition'
-import useSpriteCollision from '~hooks/useSpriteCollision'
-import isRectangleCollision from '~util/collision/isRectangleCollision'
-import Sprite from '../Sprite'
+import { Sprite } from '@inlet/react-pixi'
 
 const SPEED = 2
 const GRAVITY = 0.5
@@ -16,13 +15,18 @@ export interface PlayerProps {
 }
 
 function Player(props: PlayerProps) {
-  const [sprite, setSprite] = useState<PIXI.Sprite>(null)
   const [{ x, y }, setPosition] = usePosition({
     x: props.x,
     y: props.y
   })
 
-  const bounds = new PIXI.Rectangle(0, 0, 26, 37)
+  const { box, bodyId } = useCollision({
+    group: 'player',
+    x,
+    y,
+    width: 26,
+    height: 37
+  })
 
   return (
     <>
@@ -53,20 +57,9 @@ function Player(props: PlayerProps) {
       <Sprite
         {...props}
         image="images/bunny.png"
-        spriteRef={ref => {
-          if (ref && !sprite) {
-            setSprite(ref)
-          }
-        }}
         x={x}
         y={y}
-        hitArea={bounds}
-        anchor={[0, 1]}
         roundPixels={true}
-        collisionSettings={{
-          group: '',
-          allowOutsideLevel: false
-        }}
       />
     </>
   )
