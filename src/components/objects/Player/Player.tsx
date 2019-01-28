@@ -3,12 +3,16 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import Input from '~components/io/Input'
 import useCollision from '~hooks/useCollision'
 import usePosition from '~hooks/usePosition'
-import { Sprite } from '@inlet/react-pixi'
-import crash from '~util/crash'
+import { Sprite, useTick } from '@inlet/react-pixi'
 
-const SPEED = 2
-const GRAVITY = 0.5
-const JUMP = 2
+// import useLoop from '~hooks/useLoop'
+const SPEED = 1.5
+const GRAVITY = 0.25
+const MAX_VELOCITY = {
+  x: 10,
+  y: 6
+}
+const JUMP_VELOCITY = -5
 
 export interface PlayerProps {
   x: number
@@ -19,14 +23,17 @@ const controls = {
   LEFT: keycodes('left'),
   RIGHT: keycodes('right'),
   UP: keycodes('up'),
-  DOWN: keycodes('down')
+  DOWN: keycodes('down'),
+  JUMP: keycodes('space')
 }
 
 function Player(props: PlayerProps) {
   const [health, setHealth] = useState(100)
   const [{ x, y }, setPosition] = usePosition({ x: props.x, y: props.y })
+  const [velocity, setVelocity] = usePosition({ x: 0, y: 0 })
 
   const posRef = useRef({ x, y })
+  const velocityRef = useRef(velocity)
 
   useEffect(
     () => {
@@ -34,6 +41,10 @@ function Player(props: PlayerProps) {
     },
     [x, y]
   )
+
+  useEffect(() => {
+    velocityRef.current = velocity
+  }, [])
 
   const { box, isCollidingAt } = useCollision({
     groupId: 'player',
@@ -47,7 +58,42 @@ function Player(props: PlayerProps) {
     }
   })
 
-  const onInput = (keycode: string) => (delta: number) => {
+  // gravity
+  useTick(() => {
+    if (velocity.y < MAX_VELOCITY.y) {
+      setVelocity({
+        x: velocityRef.current.x,
+        y: velocityRef.current.y + GRAVITY
+      })
+    }
+  })
+
+  // apply velocity to position if no collision
+  useTick(delta => {
+    const { x, y } = posRef.current
+    const velocityDelta = {
+      x: velocityRef.current.x * delta,
+      y: velocityRef.current.y * delta
+    }
+
+    const newPos = { x: x + velocityDelta.x, y: y + velocityDelta.y }
+
+    const collision = isCollidingAt(newPos, 'ground')
+
+    if (!collision) {
+      setPosition(newPos)
+    } else {
+      if (collision.overlapV.y && velocityDelta.y > 0) {
+        setVelocity({ x: velocityRef.current.x, y: 0 })
+      }
+      setPosition({
+        x: newPos.x - collision.overlapV.x,
+        y: newPos.y - collision.overlapV.y
+      })
+    }
+  })
+
+  const onInputDown = (keycode: string) => (delta: number) => {
     switch (keycode) {
       case controls.LEFT: {
         const newPos = { x: x - SPEED * delta, y }
@@ -71,25 +117,28 @@ function Player(props: PlayerProps) {
         }
         return
       }
-      case controls.UP: {
-        const newPos = { x, y: y - SPEED * delta }
-        const collisionRes = isCollidingAt(newPos, 'ground')
-        if (!collisionRes) {
-          setPosition(newPos)
-        } else {
-          const yDif = newPos.y - collisionRes.overlapV.y
-          setPosition({ y: yDif })
+    }
+  }
+
+  const onInputPress = (keycode: string) => (delta: number) => {
+    switch (keycode) {
+      case controls.JUMP: {
+        if (isCollidingAt({ x, y: y + 1 }, 'ground')) {
+          setVelocity({ ...velocity, y: JUMP_VELOCITY })
         }
         return
       }
-      case controls.DOWN: {
-        const newPos = { x, y: y + SPEED * delta }
-        const collisionRes = isCollidingAt(newPos, 'ground')
-        if (!collisionRes) {
-          setPosition(newPos)
-        } else {
-          const yDif = newPos.y - collisionRes.overlapV.y
-          setPosition({ y: yDif })
+    }
+  }
+
+  const onInputRelease = (keycode: string) => (delta: number) => {
+    switch (keycode) {
+      case controls.JUMP: {
+        if (
+          !isCollidingAt({ x, y: y + 1 }, 'ground') &&
+          velocityRef.current.y < 0
+        ) {
+          setVelocity({ ...velocity, y: 0 })
         }
         return
       }
@@ -98,10 +147,15 @@ function Player(props: PlayerProps) {
 
   return (
     <>
-      <Input keyCode={controls.LEFT} onDown={onInput(controls.LEFT)} />
-      <Input keyCode={controls.RIGHT} onDown={onInput(controls.RIGHT)} />
-      <Input keyCode={controls.UP} onDown={onInput(controls.UP)} />
-      <Input keyCode={controls.DOWN} onDown={onInput(controls.DOWN)} />
+      <Input keyCode={controls.LEFT} onDown={onInputDown(controls.LEFT)} />
+      <Input keyCode={controls.RIGHT} onDown={onInputDown(controls.RIGHT)} />
+      <Input keyCode={controls.UP} onDown={onInputDown(controls.UP)} />
+      <Input keyCode={controls.DOWN} onDown={onInputDown(controls.DOWN)} />
+      <Input
+        keyCode={controls.JUMP}
+        onPress={onInputPress(controls.JUMP)}
+        onRelease={onInputRelease(controls.JUMP)}
+      />
       <Sprite
         {...props}
         image="images/bunny.png"

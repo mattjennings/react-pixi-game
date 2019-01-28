@@ -33,6 +33,14 @@ export default function useCollision(args: {
     [box]
   )
 
+  const collisionContextRef = useRef(collisionContext)
+
+  useEffect(
+    () => {
+      collisionContextRef.current = collisionContext
+    },
+    [collisionContext]
+  )
   // Register the body with CollisionContext
   useEffect(() => {
     const bodyInfo = collisionContext.registerCollider({
@@ -66,18 +74,18 @@ export default function useCollision(args: {
   )
 
   // Update body in CollisionContext when position changes
-  if (colliderId) {
-    useEffect(
-      () => {
+  useEffect(
+    () => {
+      if (colliderId) {
         box.moveTo(x, y)
         collisionContext.updateCollider({
           colliderId,
           box
         })
-      },
-      [x, y]
-    )
-  }
+      }
+    },
+    [x, y]
+  )
 
   return {
     colliderId,
@@ -86,8 +94,16 @@ export default function useCollision(args: {
      * Returns the response object if collison, returns false if no collision
      */
     isCollidingAt: (pos: { x: number; y: number }, groupId: string) => {
+      const box = boxRef.current
+      if (!box) {
+        return
+      }
+      const lastPos = { x: box.pos.x, y: box.pos.y }
       const crash = new Crash()
-      const colliders = getCollidersByGroup(collisionContext, groupId)
+      const colliders = getCollidersByGroup(
+        collisionContextRef.current,
+        groupId
+      )
 
       crash.insert(box)
       colliders.forEach(collider => {
@@ -98,7 +114,7 @@ export default function useCollision(args: {
 
       box.moveTo(pos.x, pos.y)
       crash.testAll(box, response)
-      box.moveTo(box.lastPos.x, box.lastPos.y)
+      box.moveTo(lastPos.x, lastPos.y)
 
       return !!response.a && !!response.b && response
     }

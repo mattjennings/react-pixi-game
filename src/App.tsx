@@ -9,8 +9,10 @@ const App = () => (
   <Stage width={400} height={225}>
     <Level width={400} height={225}>
       <CollisionProvider>
-        <Player x={300} y={100} />
-        <Block x={200} y={100} />
+        <Player x={220} y={125} />
+        <Block x={130} y={150} />
+        <Block x={200} y={150} />
+        <Block x={270} y={150} />
       </CollisionProvider>
     </Level>
   </Stage>
