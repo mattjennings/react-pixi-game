@@ -1,51 +1,71 @@
-import Crash from 'crash-colliders'
 import React, { useContext, useEffect, useReducer } from 'react'
 import { LevelContext } from '~components/levels/Level'
 import CollisionContext, { CollisionContextValue } from './CollisionContext'
-import { forEach } from 'lodash'
-
-const crash = new Crash()
+import { forEach, filter } from 'lodash'
+import useLoop from '~hooks/useLoop'
+import crash from '~util/crash'
 
 export default function CollisionProvider(props) {
-  const level = useContext(LevelContext)
-
-  // create box for level bounds
-  const levelBox = new crash.Box(
-    new crash.Vector(0, 0),
-    level.width,
-    level.height
-  )
-  crash.insert(levelBox)
-
   const [contextValue, dispatch] = useReducer<CollisionContextValue, any>(
     reducer,
     {
-      groups: ['LEVEL_BOUNDS'],
-      bodies: {
-        LEVEL: {
-          groupId: 'LEVEL_BOUNDS',
-          box: levelBox
-        }
-      },
-      registerBody: ({ group, x, y, width, height }) => {
-        const bodyId = (Math.random() * 10000).toString() // todo: replace with uuid
+      groups: [],
+      colliders: {},
+      registerCollider: ({
+        groupId,
+        collidesWith,
+        x,
+        y,
+        width,
+        height,
+        onCollision
+      }) => {
+        const colliderId = (Math.random() * 10000).toString() // todo: replace with uuid
         const box = new crash.Box(new crash.Vector(x, y), width, height)
+
+        // this is not a crash feature, but should be safe to do
+        box.groupId = groupId
+        box.collidesWith = collidesWith
+
         crash.insert(box)
+
+        if (onCollision) {
+          crash.onCollision((a, b, res, cancel) => {
+            const aCollidesWith = a.collidesWith || []
+            const bCollidesWith = b.collidesWith || []
+
+            // if collision doesn't involve this box, ignore
+            if (a.sat !== box.sat && b.sat !== box.sat) {
+              return
+            }
+
+            if (
+              aCollidesWith.indexOf(b.groupId) === -1 &&
+              bCollidesWith.indexOf(a.groupId) === -1
+            ) {
+              return
+            }
+
+            onCollision(b, res, cancel)
+          })
+        }
+
         dispatch({
-          type: ActionTypes.REGISTER_BODY,
+          type: ActionTypes.REGISTER_COLLIDER,
           payload: {
-            groupId: group,
-            bodyId
+            groupId,
+            colliderId,
+            box
           }
         })
 
-        return { id: bodyId, box }
+        return { id: colliderId, box }
       },
-      updateBody: ({ bodyId, box }) => {
+      updateCollider: ({ colliderId, box }) => {
         dispatch({
-          type: ActionTypes.UPDATE_BODY,
+          type: ActionTypes.UPDATE_COLLIDER,
           payload: {
-            bodyId,
+            colliderId,
             box
           }
         })
@@ -53,19 +73,10 @@ export default function CollisionProvider(props) {
     }
   )
 
-  useEffect(
-    () => {
-      // todo: calculate collisions
+  // useLoop(delta => {
+  //   crash.check()
+  // })
 
-      // simple check if body is inside the bounds
-      const boxes = forEach(contextValue.bodies, (body, key) => {
-        if (key !== 'LEVEL' && body.box) {
-          console.log('inside bounds: ', crash.test(levelBox, body.box))
-        }
-      })
-    },
-    [contextValue.bodies]
-  )
   return (
     <CollisionContext.Provider value={contextValue}>
       {props.children}
@@ -74,20 +85,22 @@ export default function CollisionProvider(props) {
 }
 
 enum ActionTypes {
-  REGISTER_BODY = 'REGISTER_BODY',
-  UPDATE_BODY = 'UPDATE_BODY'
+  REGISTER_COLLIDER = 'REGISTER_COLLIDER',
+  UPDATE_COLLIDER = 'UPDATE_COLLIDER'
 }
 
 function reducer(state: CollisionContextValue, action) {
   switch (action.type) {
-    case ActionTypes.REGISTER_BODY: {
-      const { bodyId, groupId } = action.payload
+    case ActionTypes.REGISTER_COLLIDER: {
+      const { colliderId, groupId, box } = action.payload
+
       return {
         ...state,
-        bodies: {
-          ...state.bodies,
-          [bodyId]: {
-            group: groupId
+        colliders: {
+          ...state.colliders,
+          [colliderId]: {
+            groupId,
+            box
           }
         },
         groups:
@@ -96,14 +109,14 @@ function reducer(state: CollisionContextValue, action) {
             : state.groups
       }
     }
-    case ActionTypes.UPDATE_BODY: {
-      const { bodyId, box } = action.payload
+    case ActionTypes.UPDATE_COLLIDER: {
+      const { colliderId, box } = action.payload
       return {
         ...state,
-        bodies: {
-          ...state.bodies,
-          [bodyId]: {
-            ...state.bodies[bodyId],
+        colliders: {
+          ...state.colliders,
+          [colliderId]: {
+            ...state.colliders[colliderId],
             box
           }
         }

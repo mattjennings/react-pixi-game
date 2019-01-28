@@ -1,44 +1,77 @@
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useState, useRef } from 'react'
 import { CollisionContext } from '~components/system/CollisionProvider'
+import Crash from 'crash-colliders'
+import { getCollidersByGroup } from '~components/system/CollisionProvider/selectors'
 
 export default function useCollision(args: {
-  group: string
+  groupId: string
+
+  /**
+   * groupIds should trigger collisions
+   */
+  collidesWith?: string[]
+
   x: number
   y: number
   width: number
   height: number
+  data?: any
+  onCollision?: (other, res, cancel) => any
 }) {
-  const { x, y, width, height, group } = args
+  const { x, y, width, height, groupId, data, collidesWith, onCollision } = args
 
   const collisionContext = useContext(CollisionContext)
-  const [bodyId, setBodyId] = useState(null)
-  const [box, setBox] = useState(null)
+  const [colliderId, setColliderId] = useState(null)
+  const [box, setBox] = useState(undefined)
+
+  const boxRef = useRef(box)
+
+  useEffect(
+    () => {
+      boxRef.current = box
+    },
+    [box]
+  )
 
   // Register the body with CollisionContext
   useEffect(() => {
-    const bodyInfo = collisionContext.registerBody({
-      group,
+    const bodyInfo = collisionContext.registerCollider({
+      groupId,
+      collidesWith,
       x,
       y,
       width,
-      height
+      height,
+      onCollision
     })
-    setBodyId(bodyInfo.id)
+
+    bodyInfo.box.setData(data)
+
+    setColliderId(bodyInfo.id)
     setBox(bodyInfo.box)
-    bodyInfo.box.moveTo(x, y)
-    collisionContext.updateBody({
-      bodyId: bodyInfo.id,
-      box: bodyInfo.box
-    })
   }, [])
 
+  // update custom data in box
+  useEffect(
+    () => {
+      if (colliderId && box) {
+        box.setData(data)
+        collisionContext.updateCollider({
+          colliderId,
+          box
+        })
+      }
+    },
+    [data]
+  )
+
   // Update body in CollisionContext when position changes
-  if (bodyId) {
+  if (colliderId) {
     useEffect(
       () => {
         box.moveTo(x, y)
-        collisionContext.updateBody({
-          bodyId,
+        collisionContext.updateCollider({
+          colliderId,
           box
         })
       },
@@ -46,5 +79,28 @@ export default function useCollision(args: {
     )
   }
 
-  return { bodyId, box }
+  return {
+    colliderId,
+    box,
+    /**
+     * Returns the response object if collison, returns false if no collision
+     */
+    isCollidingAt: (pos: { x: number; y: number }, groupId: string) => {
+      const crash = new Crash()
+      const colliders = getCollidersByGroup(collisionContext, groupId)
+
+      crash.insert(box)
+      colliders.forEach(collider => {
+        crash.insert(collider.box)
+      })
+
+      const response = new Crash.Response()
+
+      box.moveTo(pos.x, pos.y)
+      crash.testAll(box, response)
+      box.moveTo(box.lastPos.x, box.lastPos.y)
+
+      return !!response.a && !!response.b && response
+    }
+  }
 }

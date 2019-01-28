@@ -2,19 +2,26 @@ import React from 'react'
 
 export interface CollisionContextValue {
   groups: string[]
-  bodies: Record<
+  colliders: Record<
     string,
     {
       groupId: string
       box: any
     }
   >
-
   /**
    * Registers a body to the CollisionContext and returns the id and box
    */
-  registerBody: (
-    args: { group: string; x: number; y: number; width: number; height: number }
+  registerCollider: (
+    args: {
+      groupId: string
+      collidesWith?: string[]
+      x: number
+      y: number
+      width: number
+      height: number
+      onCollision?: (other, res, cancel) => any
+    }
   ) => {
     id: string
     box: any
@@ -23,12 +30,17 @@ export interface CollisionContextValue {
   /**
    * Updates the body so that the CollisionContext can recalculate the necessary collisions
    */
-  updateBody: (args: { bodyId: string; box: any }) => any
+  updateCollider: (
+    args: {
+      colliderId: string
+      box: any
+    }
+  ) => any
 }
 
 export default React.createContext<CollisionContextValue>({
   groups: [],
-  bodies: {},
-  registerBody: () => null,
-  updateBody: () => null
+  colliders: {},
+  registerCollider: () => null,
+  updateCollider: () => null
 })

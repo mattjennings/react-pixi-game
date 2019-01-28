@@ -44,7 +44,7 @@
     "keycodes": "^1.0.0",
     "lodash": "^4.17.10",
     "pixi.js": "^4.8.4",
-    "react": "^16.7.0-alpha.2",
-    "react-dom": "^16.7.0-alpha.2"
+    "react": "16.7.0-alpha.2",
+    "react-dom": "16.7.0-alpha.2"
   }
 }
