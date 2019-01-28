@@ -4,7 +4,6 @@ import Input from '~components/io/Input'
 import useCollision from '~hooks/useCollision'
 import usePosition from '~hooks/usePosition'
 import { Sprite, useTick } from '@inlet/react-pixi'
-import { usePersistentState } from '~hooks/usePersistentState'
 import { useGetState } from '~hooks/useGetState'
 
 // import useLoop from '~hooks/useLoop'

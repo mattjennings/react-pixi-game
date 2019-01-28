@@ -4,7 +4,9 @@
   "description": "An example game written in pixi & react",
   "main": "src/index.js",
   "scripts": {
-    "dev": "webpack-dev-server --port 1234",
+    "dev": "webpack-dev-server --config webpack.config.dev.js --port 1234",
+    "build": "webpack --config webpack.config.prod.js --production",
+    "now-build": "npm run build",
     "test": "./node_modules/.bin/jest --watch --coverage"
   },
   "devDependencies": {
@@ -23,6 +25,7 @@
     "copy-webpack-plugin": "^4.6.0",
     "css-loader": "^2.0.2",
     "html-webpack-plugin": "^3.2.0",
+    "imports-loader": "^0.8.0",
     "jest": "^22.1.4",
     "prettier": "^1.13.7",
     "style-loader": "^0.23.1",

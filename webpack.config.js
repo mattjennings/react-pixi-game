@@ -6,16 +6,24 @@ const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin')
 module.exports = {
   entry: path.resolve(__dirname, 'src', 'index.tsx'),
   mode: 'development',
-  devtool: 'inline-source-map',
   output: {
-    filename: 'bundle.js'
+    filename: '[name].bundle.js',
+    path: path.resolve(__dirname, 'dist')
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js'],
-    plugins: [new TsconfigPathsPlugin()]
+    plugins: [new TsconfigPathsPlugin()],
+    alias: {
+      RBush: 'rbush',
+      SAT: 'sat'
+    }
   },
   module: {
     rules: [
+      {
+        test: /\.js$/,
+        use: 'imports-loader?define=>false'
+      },
       {
         test: /\.js$/,
         exclude: /(node_modules)/,
