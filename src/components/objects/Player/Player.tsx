@@ -6,7 +6,6 @@ import usePosition from '~hooks/usePosition'
 import { Sprite, useTick } from '@inlet/react-pixi'
 import { useGetState } from '~hooks/useGetState'
 
-// import useLoop from '~hooks/useLoop'
 const SPEED = 1.5
 const GRAVITY = 0.25
 const MAX_VELOCITY = {
