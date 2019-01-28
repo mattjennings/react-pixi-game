@@ -4,6 +4,8 @@ import Input from '~components/io/Input'
 import useCollision from '~hooks/useCollision'
 import usePosition from '~hooks/usePosition'
 import { Sprite, useTick } from '@inlet/react-pixi'
+import { usePersistentState } from '~hooks/usePersistentState'
+import { useGetState } from '~hooks/useGetState'
 
 // import useLoop from '~hooks/useLoop'
 const SPEED = 1.5
@@ -32,19 +34,8 @@ function Player(props: PlayerProps) {
   const [{ x, y }, setPosition] = usePosition({ x: props.x, y: props.y })
   const [velocity, setVelocity] = usePosition({ x: 0, y: 0 })
 
-  const posRef = useRef({ x, y })
-  const velocityRef = useRef(velocity)
-
-  useEffect(
-    () => {
-      posRef.current = { x, y }
-    },
-    [x, y]
-  )
-
-  useEffect(() => {
-    velocityRef.current = velocity
-  }, [])
+  const getVelocity = useGetState(velocity)
+  const getPosition = useGetState({ x, y })
 
   const { box, isCollidingAt } = useCollision({
     groupId: 'player',
@@ -60,20 +51,22 @@ function Player(props: PlayerProps) {
 
   // gravity
   useTick(() => {
+    const velocity = getVelocity()
     if (velocity.y < MAX_VELOCITY.y) {
       setVelocity({
-        x: velocityRef.current.x,
-        y: velocityRef.current.y + GRAVITY
+        x: velocity.x,
+        y: velocity.y + GRAVITY
       })
     }
   })
 
   // apply velocity to position if no collision
   useTick(delta => {
-    const { x, y } = posRef.current
+    const velocity = getVelocity()
+    const { x, y } = getPosition()
     const velocityDelta = {
-      x: velocityRef.current.x * delta,
-      y: velocityRef.current.y * delta
+      x: velocity.x * delta,
+      y: velocity.y * delta
     }
 
     const newPos = { x: x + velocityDelta.x, y: y + velocityDelta.y }
@@ -84,7 +77,7 @@ function Player(props: PlayerProps) {
       setPosition(newPos)
     } else {
       if (collision.overlapV.y && velocityDelta.y > 0) {
-        setVelocity({ x: velocityRef.current.x, y: 0 })
+        setVelocity({ x: velocity.x, y: 0 })
       }
       setPosition({
         x: newPos.x - collision.overlapV.x,
@@ -123,6 +116,7 @@ function Player(props: PlayerProps) {
   const onInputPress = (keycode: string) => (delta: number) => {
     switch (keycode) {
       case controls.JUMP: {
+        const velocity = getVelocity()
         if (isCollidingAt({ x, y: y + 1 }, 'ground')) {
           setVelocity({ ...velocity, y: JUMP_VELOCITY })
         }
@@ -134,10 +128,8 @@ function Player(props: PlayerProps) {
   const onInputRelease = (keycode: string) => (delta: number) => {
     switch (keycode) {
       case controls.JUMP: {
-        if (
-          !isCollidingAt({ x, y: y + 1 }, 'ground') &&
-          velocityRef.current.y < 0
-        ) {
+        const velocity = getVelocity()
+        if (!isCollidingAt({ x, y: y + 1 }, 'ground') && velocity.y < 0) {
           setVelocity({ ...velocity, y: 0 })
         }
         return

@@ -2,6 +2,7 @@ import { useContext, useEffect, useState, useRef } from 'react'
 import { CollisionContext } from '~components/system/CollisionProvider'
 import Crash from 'crash-colliders'
 import { getCollidersByGroup } from '~components/system/CollisionProvider/selectors'
+import { useGetState } from './useGetState'
 
 export default function useCollision(args: {
   groupId: string
@@ -24,23 +25,9 @@ export default function useCollision(args: {
   const [colliderId, setColliderId] = useState(null)
   const [box, setBox] = useState(undefined)
 
-  const boxRef = useRef(box)
+  const getBox = useGetState(box)
+  const getCollisionContext = useGetState(collisionContext)
 
-  useEffect(
-    () => {
-      boxRef.current = box
-    },
-    [box]
-  )
-
-  const collisionContextRef = useRef(collisionContext)
-
-  useEffect(
-    () => {
-      collisionContextRef.current = collisionContext
-    },
-    [collisionContext]
-  )
   // Register the body with CollisionContext
   useEffect(() => {
     const bodyInfo = collisionContext.registerCollider({
@@ -94,16 +81,13 @@ export default function useCollision(args: {
      * Returns the response object if collison, returns false if no collision
      */
     isCollidingAt: (pos: { x: number; y: number }, groupId: string) => {
-      const box = boxRef.current
+      const box = getBox()
       if (!box) {
         return
       }
       const lastPos = { x: box.pos.x, y: box.pos.y }
       const crash = new Crash()
-      const colliders = getCollidersByGroup(
-        collisionContextRef.current,
-        groupId
-      )
+      const colliders = getCollidersByGroup(getCollisionContext(), groupId)
 
       crash.insert(box)
       colliders.forEach(collider => {
